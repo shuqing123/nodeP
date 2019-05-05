@@ -1,0 +1,111 @@
+<% include ../header.ejs %>
+<body class="layui-layout-body">
+    <div class="layui-layout layui-layout-admin">
+        <% include ./nav.ejs %>
+
+        <div class="layui-body" >
+            <!-- 内容主体区域 -->
+            <fieldset class="layui-elem-field layui-field-title">
+                <legend>所有用户</legend>
+                <table lay-filter="demo" class="layui-hide" id="test"></table>
+                <script type="text/html" id="barDemo">
+                    <a class="layui-btn layui-btn-xs" lay-event="edit">更改级别</a>
+                    <a class="layui-btn layui-btn-danger layui-btn-xs" lay-event="del">删除用户</a>
+                </script>
+            </fieldset>
+        </div>
+
+        <div class="layui-footer">
+            <!-- 底部固定区域 -->
+            © layui.com - 底部固定区域
+        </div>
+    </div>
+    <script>
+
+        //JavaScript代码区域
+        layui.use(['element','table','form'], function(){
+            var table = layui.table;
+            var form=layui.form;
+            var $=layui.$;
+
+            table.render({
+                elem: '#test'
+                ,url:'/admin/user',
+                method:'post'
+                ,cols: [[
+                    {field:'username', width:80, title: '用户名'},
+                    {field:'level', width:80, title: '级别'},
+                    {field:'used', title: '帐号是否可用',templet(d){
+                            return `<input type="checkbox" name="used" value="${d._id}" lay-skin="switch" lay-text="可用|不可用" lay-filter="usedDemo" ${d.used === true ? 'checked' : ''}>`;
+                        }},
+                    {field: 'tool', toolbar: '#barDemo'}
+                ]]
+                ,page: true
+            });
+            //帐号是否可用
+            form.on('switch(usedDemo)',function(obj){
+                //console.log(this.value,obj.elem.checked);
+                $.ajax({
+                    url:'/admin/user/reuserlevel',
+                    method:'post',
+                    data:{
+                        user_id:this.value,
+                        used: obj.elem.checked
+                    },
+                    success(res){
+                        res.code === 0 && layer.tips(res.data, obj.othis);
+                        res.code === 1 && layer.alert(res.data, function () {
+                            window.location.reload()
+                        });
+                    }
+                })
+            })
+            //监听table为demo的tool
+            table.on('tool(demo)',function (obj) {
+                //console.log(obj);
+                //修改级别
+                if(obj.event==='edit'){
+                    layer.prompt(function (value,index,elem) {
+                        $.ajax({
+                            url:'/admin/user/relevel',
+                            method:'post',
+                            data:{
+                                _id:obj.data._id,
+                                level:value
+                            },
+                            success(msg){
+                                if(msg.code===0){
+                                    location.reload();
+                                };
+                                msg.code === 1 && layer.alert(msg.data, function () {
+                                    window.location.reload()
+                                });
+                            },
+                        });
+                        layer.close(index);
+                    });
+                }else if(obj.event==='del'){
+                    layer.confirm('确定删除',{icon: 3, title:'提示'},function (index) {
+                        $.ajax({
+                            url:'/admin/user/del',
+                            method:'post',
+                            data:{
+                                _id:obj.data._id,
+                            },
+                            success(msg){
+                                if(msg.code===0){
+                                    location.reload();
+                                };
+                                msg.code === 1 && layer.alert(msg.data, function () {
+                                    window.location.reload()
+                                });
+                            },
+                        });
+                        layer.close(index);
+                    });
+                }
+            });
+        });
+    </script>
+</body>
+</html>
